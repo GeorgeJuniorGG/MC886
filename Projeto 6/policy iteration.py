@@ -1,5 +1,3 @@
-from ctypes import util
-from re import A
 from environment_simulator import mdp
 
 def argmax(a0, a1, a2):
