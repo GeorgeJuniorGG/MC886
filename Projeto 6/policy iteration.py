@@ -1,13 +1,15 @@
 from environment_simulator import mdp
 
-def argmax(a0, a1, a2):
-    if(a0 > a1):
-        if (a0 > a2):
-            return 0
-        return 2
-    if (a1 > a2):
+def argmax(a0, a1, a2, a3):
+    aux = max(max(a0, a1), max(a2, a3))
+    if(aux == a0):
+        return 0
+    elif(aux == a1):
         return 1
-    return 2
+    elif(aux == a2):
+        return 2
+    else:
+        return 3
 
 def policyIteration(states, actions, environment, utility, policy, gamma, reverseStates):
     naoMudou = False
@@ -24,6 +26,8 @@ def policyIteration(states, actions, environment, utility, policy, gamma, revers
                 direction = "left"
             elif(policy[i] == 1):
                 direction = "right"
+            elif(policy[i] == 3):
+                direction = "down"
             else:
                 direction = "up"
 
@@ -36,6 +40,7 @@ def policyIteration(states, actions, environment, utility, policy, gamma, revers
             a0 = environment.getReward(states[i])
             a1 = a0
             a2 = a0
+            a3 = a0
 
             for (newS, prob) in environment.getTransitionProbabilities(states[i], "left"):
                 a0 +=  gamma * prob * utility[reverseStates[newS]]
@@ -46,8 +51,11 @@ def policyIteration(states, actions, environment, utility, policy, gamma, revers
             for (newS, prob) in environment.getTransitionProbabilities(states[i], "up"):
                 a2 +=  gamma * prob * utility[reverseStates[newS]]
 
-            a = argmax(a0, a1, a2)
-            if(max(max(a0, a1), max(a1, a2)) > anterior):
+            for (newS, prob) in environment.getTransitionProbabilities(states[i], "down"):
+                a3 +=  gamma * prob * utility[reverseStates[newS]]
+
+            a = argmax(a0, a1, a2, a3)
+            if(max(max(a0, a1), max(a2, a3)) > anterior):
                 policy[i] = a
                 naoMudou = False
 
@@ -62,6 +70,8 @@ def policyEvaluation(policy, utility, gamma, environment):
                 direction = "left"
             elif(policy[j] == 1):
                 direction = "right"
+            elif(policy[j] == 3):
+                direction = "down"
             else:
                 direction = "up"
 
@@ -76,7 +86,7 @@ environment = mdp((1,1))
 gamma = 0.9
 
 # Mapeamento de identificadores de estados
-# OBS: o estade (2,2) nao esta presente pois ele corresponde a uma parede
+# OBS: o estado (2,2) nao esta presente pois ele corresponde a uma parede
 states =   {0: (1,1), 1: (1,2), 2: (1,3), 
             3: (2,1), 4: (2,3),
             5: (3,1), 6: (3,2), 7:(3,3),
@@ -87,12 +97,11 @@ reverseStates ={(1,1): 0, (1,2): 1, (1,3):2,
                 (4,1): 8, (4,2): 9, (4,3): 10}
 
 # Vetor de acoes
-# 0 corresponde a ir para a esquerda, 1 para a direita e 2 para cima
-actions = [0, 1, 2]
+# 0 corresponde a ir para a esquerda, 1 para a direita, 2 para cima e 3 para baixo
+actions = [0, 1, 2, 3]
 
 # Vetor inicial de política (quaisquer valores)
-# Em cada posição, temos a politica para cada estado: 0 corresponde a ir para a esquerda, 1 para a direita e 2 para cima
-# OBS: No nosso problema, não existe movimentação para baixo
+# Em cada posição, temos a politica para cada estado: 0 corresponde a ir para a esquerda, 1 para a direita, 2 para cima e 3 para baixo
 # OBS: Nao existe politica para os estados terminais porque eles ja sao o final do problema
 policy = [0, 1, 2,
           0, 1,
@@ -132,6 +141,8 @@ for i in range (9):             # Nao estou incluindo os estados terminais
                 direction = "left"
             elif (aux == 1):
                 direction = "right"
+            elif (aux == 3):
+                direction = "down"
             else:
                 direction = "up"
 
@@ -156,11 +167,13 @@ for i in range(3,0,-1):
                 char = "L"
             elif (aux == 1):
                 char = "R"
+            elif (aux == 3):
+                char = "D"
             else:
                 char = "U"
         print(char, end=" ")
     print("")
-print("L = Left, R = Right, U = Up, # = Hole, T = Terminal State")
+print("L = Left, R = Right, U = Up, D = Down, # = Hole, T = Terminal State")
 print("#########################################################")
 print("Valor Esperado de Cada Estado:")
 for i in range(3,0,-1):
