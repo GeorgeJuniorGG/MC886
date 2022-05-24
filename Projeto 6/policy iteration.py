@@ -75,15 +75,16 @@ def policyEvaluation(policy, utility, gamma, environment):
             else:
                 direction = "up"
 
-            utility[j] = environment.getReward(states[j])
+            utilityAux = environment.getReward(states[j])
             for (newS, prob) in environment.getTransitionProbabilities(states[j], direction):
-                utility[j] += gamma * prob * utility[reverseStates[newS]]
+                utilityAux += gamma * prob * utility[reverseStates[newS]]
+            utility[j] = utilityAux
     return utility
 
 environment = mdp((1,1))
 
-# Valor de gamma definido arbitrariamente
-gamma = 0.9
+# Valor de gamma definido com base no que foi dito em sala
+gamma = 1
 
 # Mapeamento de identificadores de estados
 # OBS: o estado (2,2) nao esta presente pois ele corresponde a uma parede
@@ -129,14 +130,11 @@ for i in range (9):             # Nao estou incluindo os estados terminais
     n = 10000                               # Numero de simulacoes
     accum = 0                               # Acumula as somas das recompensas de todas as simulacoes
 
-    for j in range (n):                     # Faz as n simulacoes
-        state = states[i]                   # Reseta o estado inicial para cada simulacao
-        accum2 = 0                          # Reseta o acumulador interno para cada simulacao
+    for j in range (n):                             # Faz as n simulacoes
+        state = states[i]                           # Reseta o estado inicial para cada simulacao
+        accum2 = environment.getReward(state)       # Reseta o acumulador interno para cada simulacao
         while state not in environment.terminalStates:
-            if(accum2 == 0):                 # Escolhe a direcao para ir com base na politica otima
-                aux = optimalPolicy[i]
-            else:
-                aux = optimalPolicy[reverseStates[state]]
+            aux = optimalPolicy[reverseStates[state]]   # Escolhe a direcao para ir com base na politica otima
             if(aux == 0):
                 direction = "left"
             elif (aux == 1):
