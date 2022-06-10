@@ -25,7 +25,7 @@ def policyEvaluation(policy, utility, gamma, rewards, Prob, states, reverseState
 
     return utility
 
-def directUtilityEstimation (policy, environment, states, reverseStates):
+def directUtilityEstimation (policy, environment, states, reverseStates, limite):
 
     utilidade = [0, 0, 0,
                  0, 0,
@@ -36,8 +36,13 @@ def directUtilityEstimation (policy, environment, states, reverseStates):
                  1, 1,
                  1, 1, 1,
                  1, 1, 1]
-    
-    for i in range (200):
+    convergiu = [0, 0, 0,
+                 0, 0,
+                 0, 0, 0,
+                 0, 0, 0]
+    conv = False
+
+    for i in range (200000):
         count = 0
         hist_estados = []        # Guarda os estados visitados
         hist_recompensas = []    # Guarda as recompensas recebidas
@@ -97,10 +102,18 @@ def directUtilityEstimation (policy, environment, states, reverseStates):
                 else:
                     utilidade[j] = utilidadeAux[j]
                     happened[j] = 0
+        conv = True
+        for j in range(len(utilidade)):
+            if(abs(convergiu[j] - utilidade[j]) > limite):
+                conv = False
+            convergiu[j] = utilidade[j]
+        if (conv == True and i>200):
+            print("DUE convergiu em: " + str(i))
+            break
 
     return utilidade
 
-def TD (policy, environment, states, reverseStates, gamma):
+def TD (policy, environment, states, reverseStates, gamma, limite):
     utilidade = [0, 0, 0,
                  0, 0,
                  0, 0, 0,
@@ -110,11 +123,16 @@ def TD (policy, environment, states, reverseStates, gamma):
                  0, 0,
                  0, 0, 0,
                  0, 0, 0]
-    
+    convergiu = [0, 0, 0,
+                 0, 0,
+                 0, 0, 0,
+                 0, 0, 0]
+    conv = False
+
     # De acordo com o livro
     alfa = lambda n: 60./(59+n)
 
-    for i in range(200):
+    for i in range(200000):
         count = 0
         estado = (1,1)
         recompensa = -0.04
@@ -164,13 +182,29 @@ def TD (policy, environment, states, reverseStates, gamma):
             if count > 1000:
                 return -1
 
+        conv = True
+        for j in range(len(utilidade)):
+            if(abs(convergiu[j] - utilidade[j]) > limite):
+                conv = False
+            convergiu[j] = utilidade[j]
+        if (conv == True and i>200):
+            print("TD convergiu em: " + str(i))
+            break
+
     return utilidade
 
-def ADP (policy, environment, states, reverseStates, gamma):
+def ADP (policy, environment, states, reverseStates, gamma, limite):
     utilidade = [0, 0, 0,
                  0, 0,
                  0, 0, 0,
                  0, 0, 0]
+    
+    convergiu = [0, 0, 0,
+                 0, 0,
+                 0, 0, 0,
+                 0, 0, 0]
+    conv = False
+
     visitados = set()
     N_prevEstado_prevDir = defaultdict(int)
     N_estado_prevEstado_prevDir = defaultdict(int)
@@ -229,7 +263,7 @@ def ADP (policy, environment, states, reverseStates, gamma):
          (3,1): 0, (3,2): 0, (3,3): 0,
          (4,1): 0, (4,2): 0, (4,3): 0}
     
-    for i in range(200):
+    for i in range(200000):
         count = 0
         estado = (1,1)
         prevEstado = -1
@@ -304,12 +338,48 @@ def ADP (policy, environment, states, reverseStates, gamma):
             else:
                 prevEstado = -1
                 prevDirecao = -1
-
-            count += 1
-            if count > 1000:
-                return -1
+    
+        conv = True
+        for j in range(len(utilidade)):
+            if(abs(convergiu[j] - utilidade[j]) > limite):
+                conv = False
+            convergiu[j] = utilidade[j]
+        if (conv == True and i > 200):
+            print("ADP convergiu em: " + str(i))
+            break
 
     return utilidade
+
+def printPolicy (policy, reverseStates):
+    for i in range(3,0,-1):
+        for j in range(1,5):
+            if (i, j) == (2,2):
+                char = '#'
+            elif (i,j) == (3,4) or (i,j) == (2,4):
+                char = "T"
+            else:
+                aux = policy[reverseStates[(j, i)]]
+                if(aux == 0):
+                    char = "L"
+                elif (aux == 1):
+                    char = "R"
+                elif (aux == 3):
+                    char = "D"
+                else:
+                    char = "U"
+            print(char, end=" ")
+        print("")
+    print("L = Left, R = Right, U = Up, D = Down, # = Hole, T = Terminal State")
+
+def printUtility (utility, reverseStates):
+    for i in range(3,0,-1):
+        for j in range(1,5):
+            if (i, j) == (2,2):
+                print("  #  ", end="")
+            else:
+                char = utility[reverseStates[(j,i)]]
+                print("%.2f" %char,end=" ")
+        print("")
 
 environment = mdp((1,1))
 
@@ -340,13 +410,13 @@ optimalPolicy = [2, 2, 1,
                  0, 0, 0]
 
 # Vetores de políticas aleatórias (apenas 2, como definido no enunciado)
-randomPolicy1 = [2, 0, 1,
-                 1,    3,
-                 2, 0, 1,
-                 1, 0, 0]
-randomPolicy2 = [3, 0, 0,
-                 2,    3,
-                 1, 2, 2,
+randomPolicy1 = [1, 3, 3,
+                 1,    0,
+                 2, 2, 1,
+                 0, 0, 0]
+randomPolicy2 = [1, 2, 1,
+                 1,    1,
+                 2, 1, 3,
                  0, 0, 0] 
 
 # Vetores de utilidade: um para cada algoritmo, para cada politica usada
@@ -390,29 +460,46 @@ utility3c = [0, 0, 0,
            0, -1, 1]
 
 # Chamadas dos metodos para as 3 politicas
+limite = 0.0002
+utility1a = directUtilityEstimation(optimalPolicy, environment, states, reverseStates, limite)
+utility2a = TD(optimalPolicy, environment, states, reverseStates, gamma, limite)
+utility3a = ADP(optimalPolicy, environment, states, reverseStates, gamma, limite)
 
-utility1a = directUtilityEstimation(optimalPolicy, environment, states, reverseStates)
-utility2a = TD(optimalPolicy, environment, states, reverseStates, gamma)
-utility3a = ADP(optimalPolicy, environment, states, reverseStates, gamma)
+utility1b = directUtilityEstimation(randomPolicy1, environment, states, reverseStates, limite)
+utility2b = TD(randomPolicy1, environment, states, reverseStates, gamma, limite)
+utility3b = ADP(randomPolicy1, environment, states, reverseStates, gamma, limite)
 
-print(utility1a)
-print(utility2a)
-print(utility3a)
-print("========================================================")
+utility1c = directUtilityEstimation(randomPolicy2, environment, states, reverseStates, limite)
+utility2c = TD(randomPolicy2, environment, states, reverseStates, gamma, limite)
+utility3c = ADP(randomPolicy2, environment, states, reverseStates, gamma, limite)
 
-utility1b = directUtilityEstimation(randomPolicy1, environment, states, reverseStates)
-utility2b = TD(randomPolicy1, environment, states, reverseStates, gamma)
-utility3b = ADP(randomPolicy1, environment, states, reverseStates, gamma)
-
-print(utility1b)
-print(utility2b)
-print(utility3b)
-print("========================================================")
-
-utility1c = directUtilityEstimation(randomPolicy2, environment, states, reverseStates)
-utility2c = TD(randomPolicy2, environment, states, reverseStates, gamma)
-utility3c = ADP(randomPolicy2, environment, states, reverseStates, gamma)
-
-print(utility1c)
-print(utility2c)
-print(utility3c)
+# Saída
+print("Política Ótima")
+printPolicy(optimalPolicy, reverseStates)
+print("")
+print("Direct Utility Estimation")
+printUtility(utility1a, reverseStates)
+print("TD")
+printUtility(utility2a, reverseStates)
+print("ADP")
+printUtility(utility3a, reverseStates)
+print("=================================")
+print("Política Aleatória 1")
+printPolicy(randomPolicy1, reverseStates)
+print("")
+print("Direct Utility Estimation")
+printUtility(utility1b, reverseStates)
+print("TD")
+printUtility(utility2b, reverseStates)
+print("ADP")
+printUtility(utility3b, reverseStates)
+print("=================================")
+print("Política Aleatória 2")
+printPolicy(randomPolicy2, reverseStates)
+print("")
+print("Direct Utility Estimation")
+printUtility(utility1c, reverseStates)
+print("TD")
+printUtility(utility2c, reverseStates)
+print("ADP")
+printUtility(utility3c, reverseStates)
